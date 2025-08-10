@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-08-09T00:00:00+09:00",
+  "default_mode": "sequential",
+  "weights": { "J": 0.6, "K": 0.3, "Q": 0.1 },
+  "timeouts_ms": { "J": 30000, "K": 30000, "Q": 30000 },
+  "failover_order": {
+    "J": ["K", "Q"],
+    "K": ["J", "Q"],
+    "Q": ["J", "K"]
+  },
+  "block_rules": {
+    "q_risk_levels_block": ["High", "Block"],
+    "required_keys": {
+      "J": ["結論", "根拠", "推奨アクション", "リスク評価"],
+      "K": ["結論", "創造的解釈", "実装計画", "機会評価"],
+      "Q": ["結論", "根拠", "盲点と誤認", "リスク評価"]
+    }
+  },
+  "logging": {
+    "root": "logs/",
+    "pattern": "logs/{YYYY}/{MM}/{DD}/{session_id}.jsonl",
+    "pii_mask": true
+  },
+  "routing_overrides": [
+    { "pattern": "緊急|緊迫|至急", "mode": "hybrid", "weights": { "J": 0.5, "K": 0.2, "Q": 0.3 } },
+    { "pattern": "企画|ブランディング|表現|デザイン", "mode": "parallel", "weights": { "J": 0.4, "K": 0.5, "Q": 0.1 } },
+    { "pattern": "セキュリティ|法務|倫理|リスク", "mode": "sequential", "weights": { "J": 0.45, "K": 0.15, "Q": 0.4 } }
+    ]
+}
