@@ -21,13 +21,16 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
+          # Secrets → JSONファイル
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          cat > "$RCLONE_CONFIG" <<'RC'
-[gdrive]
-type = drive
-scope = drive
-service_account_file = sa.json
-RC
+
+          # rclone.conf を echo で生成（ヒアドキュメント不使用）
+          {
+            echo "[gdrive]"
+            echo "type = drive"
+            echo "scope = drive"
+            echo "service_account_file = sa.json"
+          } > "$RCLONE_CONFIG"
 
       - name: Debug: show rclone config & validate JSON
         shell: bash
