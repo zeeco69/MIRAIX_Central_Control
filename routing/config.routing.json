@@ -24,7 +24,7 @@
   },
   "routing_overrides": [
     { "pattern": "緊急|緊迫|至急", "mode": "hybrid", "weights": { "J": 0.5, "K": 0.2, "Q": 0.3 } },
-    { "pattern": "企画|ブランディング|表現|デザイン", "mode": "parallel", "weights": { "J": 0.4, "K": 0.5, "Q": 0.1 } },
+    { "pattern": "企画|ブランディング|表現|デザイン", "mode": "parallel", "weights": { "J": 0.4, "K": 0.35, "Q": 0.25 } },
     { "pattern": "セキュリティ|法務|倫理|リスク", "mode": "sequential", "weights": { "J": 0.45, "K": 0.15, "Q": 0.4 } }
     ]
 }
