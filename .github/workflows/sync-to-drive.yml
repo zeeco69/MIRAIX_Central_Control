@@ -18,9 +18,7 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # 1) SA JSON → ファイル
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          # 2) rclone.conf を確実に生成（echoのみ）
           {
             echo "[gdrive]"
             echo "type = drive"
@@ -34,6 +32,11 @@ jobs:
         run: |
           echo "===== rclone.conf ====="
           cat "$RCLONE_CONFIG"
+
+      - name: rclone lsd (list Shared Drive root)
+        shell: bash
+        run: |
+          rclone --config "$RCLONE_CONFIG" lsd "gdrive:" -v
 
       - name: rclone sync to Shared Drive (optional folder)
         shell: bash
