@@ -1,3 +1,6 @@
+mkdir -p .github/workflows
+
+cat > .github/workflows/sync-to-drive.yml <<'YAML'
 name: Sync to Google Drive
 on:
   push:
@@ -8,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
-
     steps:
       - uses: actions/checkout@v4
 
@@ -21,10 +23,10 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # SecretsのJSONをそのままファイル化（改行OK）
+          # Secrets → JSONファイル（改行OKのまま）
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
 
-          # rclone の最小設定（サービスアカウントはファイル参照）
+          # rclone の設定（サービスアカウントはファイル参照）
           cat > "$RCLONE_CONFIG" <<'RC'
 [gdrive]
 type = drive
@@ -32,7 +34,7 @@ scope = drive
 service_account_file = sa.json
 RC
 
-      - name: Debug: validate sa.json (optional)
+      - name: Debug: validate sa.json
         shell: bash
         run: |
           python - << 'PY'
@@ -49,3 +51,4 @@ PY
           rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
             --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
             --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
+YAML
