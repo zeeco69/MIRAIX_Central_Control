@@ -1,4 +1,4 @@
-name: Sync to Google Drive
+name: sync to Google Drive
 on:
   push:
     branches: [ main ]
@@ -18,26 +18,25 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # Write the service account JSON from Secrets
+          # SA JSON → ファイル
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          # Minimal rclone config (service account file reference)
-          {
-            echo "[gdrive]"
-            echo "type = drive"
-            echo "scope = drive"
-            echo "service_account_file = sa.json"
-          } > "$RCLONE_CONFIG"
+          # rclone.conf（Shared Driveを固定）
+          cat > "$RCLONE_CONFIG" <<RC
+[gdrive]
+type = drive
+scope = drive
+service_account_file = sa.json
+team_drive = ${{ secrets.TEAM_DRIVE_ID }}
+RC
 
-      - name: rclone sync to Shared Drive
+      - name: rclone sync to Shared Drive (optional folder)
         shell: bash
         run: |
           set -e
           EXTRA=""
-          # If FOLDER_ID2 is set, target a specific folder in the Shared Drive
           if [ -n "${{ secrets.FOLDER_ID2 }}" ]; then
             EXTRA="--drive-root-folder-id=${{ secrets.FOLDER_ID2 }}"
           fi
           rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
-            --drive-team-drive "${{ secrets.TEAM_DRIVE_ID }}" \
             $EXTRA \
             --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
