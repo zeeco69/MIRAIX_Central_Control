@@ -33,7 +33,11 @@ jobs:
           cat "$RCLONE_CONFIG"
 
       - name: Dry-run list
-        run: rclone --config "$RCLONE_CONFIG" lsd gdrive: -v
+        shell: bash
+        run: |
+          rclone --config "$RCLONE_CONFIG" lsd "gdrive:" -v
 
       - name: Sync docs → Drive
-        run: rclone --config "$RCLONE_CONFIG" sync docs gdrive: --checksum --delete-excluded --fast-list -v
+        shell: bash
+        run: |
+          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" --checksum --delete-excluded --fast-list -v
