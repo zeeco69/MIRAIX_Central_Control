@@ -1,6 +1,3 @@
-mkdir -p .github/workflows
-
-cat > .github/workflows/sync-to-drive.yml <<'YAML'
 name: Sync to Google Drive
 on:
   push:
@@ -9,6 +6,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
     steps:
       - uses: actions/checkout@v4
 
@@ -18,17 +17,33 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
+          # 1) Secrets → JSONファイル化（そのまま書く）
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          cat > rclone.conf <<'RC'
+
+          # 2) rclone設定（サービスアカウントはファイル参照）
+          cat > "$RCLONE_CONFIG" <<'RC'
 [gdrive]
 type = drive
 scope = drive
 service_account_file = sa.json
 RC
 
-      - name: rclone sync to Drive folder
+      # --- デバッグ（ここで壊れていないか確定させる）---
+      - name: Debug: check sa.json looks like JSON
         shell: bash
         run: |
-          rclone --config rclone.conf sync "docs" "gdrive:{${{ secrets.FOLDER_ID }}}" \
-            --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
-YAML
+          head -c 1 sa.json | od -An -t x1
+          python - << 'PY'
+import json, re
+j=json.load(open("sa.json","r",encoding="utf-8"))
+mail=j.get("client_email","(none)")
+print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
+print("JSON OK")
+PY
+
+      - name: rclone sync to Drive folder (by folder id)
+        shell: bash
+        run: |
+          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
+            --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
+            --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
