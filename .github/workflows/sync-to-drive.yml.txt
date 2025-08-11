@@ -8,12 +8,11 @@ on:
       - 'routing/**'
       - 'operations/**'
       - 'modes/**'
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   validate_and_sync:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,17 +39,21 @@ jobs:
           EOF
 
       - name: Sync /docs
-        env: { FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_DOCS }} }
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_DOCS }}
         run: rclone sync "docs" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
 
       - name: Sync /routing
-        env: { FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ROUTING }} }
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ROUTING }}
         run: rclone sync "routing" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
 
       - name: Sync /operations
-        env: { FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_OPERATIONS }} }
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_OPERATIONS }}
         run: rclone sync "operations" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
 
       - name: Sync /modes
-        env: { FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_MODES }} }
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_MODES }}
         run: rclone sync "modes" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
