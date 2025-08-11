@@ -21,12 +21,12 @@ jobs:
           # SA JSON → ファイル
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
           # rclone.conf（Shared Driveを固定）
-          cat > "$RCLONE_CONFIG" <<RC
+          cat > "$RCLONE_CONFIG" <<'RC'
 [gdrive]
 type = drive
 scope = drive
 service_account_file = sa.json
-team_drive = ${{ secrets.TEAM_DRIVE_ID }}
+team_drive = ${TEAM_DRIVE_ID}
 RC
 
       - name: rclone sync to Shared Drive (optional folder)
