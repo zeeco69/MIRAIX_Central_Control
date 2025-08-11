@@ -1,4 +1,4 @@
-name: sync to Google Drive
+name: sync to Google Drive (OAuth)
 on:
   push:
     branches: [ main ]
@@ -15,37 +15,25 @@ jobs:
       - name: Install rclone
         run: curl -fsSL https://rclone.org/install.sh | sudo bash
 
-      - name: Write SA JSON and rclone config
+      - name: Write rclone.conf from secrets
         shell: bash
         run: |
-          printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
           {
             echo "[gdrive]"
             echo "type = drive"
+            echo "client_id = ${{ secrets.RCLONE_CLIENT_ID }}"
+            echo "client_secret = ${{ secrets.RCLONE_CLIENT_SECRET }}"
             echo "scope = drive"
-            echo "service_account_file = sa.json"
-            echo "team_drive = ${{ secrets.TEAM_DRIVE_ID }}"
+            echo "token = ${{ secrets.RCLONE_TOKEN }}"
+            if [ -n "${{ secrets.RCLONE_ROOT_FOLDER_ID }}" ]; then
+              echo "root_folder_id = ${{ secrets.RCLONE_ROOT_FOLDER_ID }}"
+            fi
           } > "$RCLONE_CONFIG"
-
-      - name: Debug rclone.conf
-        shell: bash
-        run: |
           echo "===== rclone.conf ====="
           cat "$RCLONE_CONFIG"
 
-      - name: rclone lsd (list Shared Drive root)
-        shell: bash
-        run: |
-          rclone --config "$RCLONE_CONFIG" lsd "gdrive:" -v
+      - name: Dry-run list
+        run: rclone --config "$RCLONE_CONFIG" lsd gdrive: -v
 
-      - name: rclone sync to Shared Drive (optional folder)
-        shell: bash
-        run: |
-          set -e
-          EXTRA=""
-          if [ -n "${{ secrets.FOLDER_ID2 }}" ]; then
-            EXTRA="--drive-root-folder-id=${{ secrets.FOLDER_ID2 }}"
-          fi
-          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
-            $EXTRA \
-            --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
+      - name: Sync docs → Drive
+        run: rclone --config "$RCLONE_CONFIG" sync docs gdrive: --checksum --delete-excluded --fast-list -v
