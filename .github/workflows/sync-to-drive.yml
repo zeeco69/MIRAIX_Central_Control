@@ -1,0 +1,21 @@
+name: Sync to Google Drive
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload files to Google Drive
+        uses: adityak74/google-drive-upload-git-action@v0.3
+        with:
+          credentials: ${{ secrets.CREDENTIALS }}
+          filename: './docs/*'  # 同期対象を調整
+          folderId: ${{ secrets.FOLDER_ID }}
+          overwrite: 'true'
