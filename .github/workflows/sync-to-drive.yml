@@ -1,31 +1,30 @@
-name: Sync to Google Drive
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up rclone
-        run: |
-          curl https://rclone.org/install.sh | sudo bash
-
-      - name: Configure rclone
-        run: |
-          mkdir -p ~/.config/rclone
-          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
-
-      - name: Sync docs to Drive
-        run: |
-          rclone --config "$RCLONE_CONFIG" sync docs gdrive: --checksum --delete-excluded --fast-list -v
-
-      - name: Sync Drive folder to Google Drive
-        run: |
-          rclone --config "$RCLONE_CONFIG" sync Drive gdrive:Drive --checksum --delete-excluded --fast-list -v
+{
+  "version": "1.0",
+  "updated_at": "2025-08-12T05:54:15+09:00",
+  "default_mode": "sequential",
+  "weights": { "J": 0.6, "K": 0.3, "Q": 0.1 },
+  "timeouts_ms": { "J": 30000, "K": 30000, "Q": 30000 },
+  "failover_order": {
+    "J": ["K", "Q"],
+    "K": ["J", "Q"],
+    "Q": ["J", "K"]
+  },
+  "block_rules": {
+    "q_risk_levels_block": ["High", "Block"],
+    "required_keys": {
+      "J": ["結論", "根拠", "推奨アクション", "リスク評価"],
+      "K": ["結論", "創造的解釈", "実装計画", "機会評価"],
+      "Q": ["結論", "根拠", "盲点と誤認", "リスク評価"]
+    }
+  },
+  "logging": {
+    "root": "logs/",
+    "pattern": "logs/{YYYY}/{MM}/{DD}/{session_id}.jsonl",
+    "pii_mask": true
+  },
+  "routing_overrides": [
+    { "pattern": "緊急|緊迫|至急", "mode": "hybrid", "weights": { "J": 0.5, "K": 0.2, "Q": 0.3 } },
+    { "pattern": "企画|ブランディング|表現|デザイン", "mode": "parallel", "weights": { "J": 0.4, "K": 0.5, "Q": 0.1 } },
+    { "pattern": "セキュリティ|法務|倫理|リスク", "mode": "sequential", "weights": { "J": 0.45, "K": 0.15, "Q": 0.4 } }
+    ]
+}
