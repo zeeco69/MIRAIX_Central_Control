@@ -2,20 +2,58 @@ name: Sync to Google Drive
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'routing/**'
+      - 'operations/**'
+      - 'modes/**'
+  workflow_dispatch:
 
 jobs:
-  sync:
+  validate_and_sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Upload files to Google Drive
-        uses: adityak74/google-drive-upload-git-action@v0.3
-        with:
-          credentials: ${{ secrets.CREDENTIALS }}
-          filename: './docs/*'  # 同期対象を調整
-          folderId: ${{ secrets.FOLDER_ID }}
-          overwrite: 'true'
+      - name: Validate routing JSON
+        run: jq . routing/config.routing.json > /dev/null
+
+      - name: Install rclone
+        run: |
+          curl -L https://downloads.rclone.org/rclone-current-linux-amd64.deb -o rclone.deb
+          sudo apt install -y ./rclone.deb
+
+      - name: Configure rclone remote for Google Drive (service account)
+        env:
+          SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << 'EOF'
+          [gdrive]
+          type = drive
+          scope = drive
+          service_account_credentials = ${SA_JSON}
+          team_drive =
+          EOF
+
+      - name: Sync /docs
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_DOCS }}
+        run: rclone sync "docs" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
+
+      - name: Sync /routing
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ROUTING }}
+        run: rclone sync "routing" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
+
+      - name: Sync /operations
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_OPERATIONS }}
+        run: rclone sync "operations" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
+
+      - name: Sync /modes
+        env:
+          FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_MODES }}
+        run: rclone sync "modes" "gdrive:{${FOLDER_ID}}" --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list
