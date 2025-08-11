@@ -12,43 +12,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure docs exists (no-op if exists)
-        run: mkdir -p docs
-
       - name: Install rclone
         run: curl -fsSL https://rclone.org/install.sh | sudo bash
 
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # Secrets → JSONファイル
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-
-          # rclone.conf を echo で生成（ヒアドキュメント不使用）
-          {
-            echo "[gdrive]"
-            echo "type = drive"
-            echo "scope = drive"
-            echo "service_account_file = sa.json"
-          } > "$RCLONE_CONFIG"
-
-      - name: Debug: show rclone config & validate JSON
-        shell: bash
-        run: |
-          echo "===== rclone.conf ====="
-          cat "$RCLONE_CONFIG"
-          python - << 'PY'
-import json,re
-j=json.load(open("sa.json","r",encoding="utf-8"))
-mail=j.get("client_email","(none)")
-print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
-print("JSON OK")
-PY
+          printf "[gdrive]\n" > "$RCLONE_CONFIG"
+          printf "type = drive\n" >> "$RCLONE_CONFIG"
+          printf "scope = drive\n" >> "$RCLONE_CONFIG"
+          printf "service_account_file = sa.json\n" >> "$RCLONE_CONFIG"
 
       - name: rclone sync to Drive folder (by folder id)
         shell: bash
         run: |
-          set -e
           rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
             --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
             --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
