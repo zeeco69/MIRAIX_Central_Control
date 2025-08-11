@@ -8,8 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Ensure docs exists (no-op if exists)
+        run: mkdir -p docs
 
       - name: Install rclone
         run: curl -fsSL https://rclone.org/install.sh | sudo bash
@@ -17,10 +21,10 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # 1) Secrets → JSONファイル化（そのまま書く）
+          # SecretsのJSONをそのままファイル化（改行OK）
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
 
-          # 2) rclone設定（サービスアカウントはファイル参照）
+          # rclone の最小設定（サービスアカウントはファイル参照）
           cat > "$RCLONE_CONFIG" <<'RC'
 [gdrive]
 type = drive
@@ -28,13 +32,11 @@ scope = drive
 service_account_file = sa.json
 RC
 
-      # --- デバッグ（ここで壊れていないか確定させる）---
-      - name: Debug: check sa.json looks like JSON
+      - name: Debug: validate sa.json (optional)
         shell: bash
         run: |
-          head -c 1 sa.json | od -An -t x1
           python - << 'PY'
-import json, re
+import json,re
 j=json.load(open("sa.json","r",encoding="utf-8"))
 mail=j.get("client_email","(none)")
 print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
