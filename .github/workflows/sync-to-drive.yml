@@ -1,43 +1,17 @@
-name: sync to Google Drive (OAuth)
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+# .github/workflows/sync-to-drive.yml （該当ステップだけ）
+- name: write rclone.conf from secrets
+  shell: bash
+  run: |
+    {
+      echo "[gdrive]"
+      echo "type = drive"
+      echo "scope = drive"
+      echo "client_id = ${{ secrets.RCLONE_CLIENT_ID }}"
+      echo "client_secret = ${{ secrets.RCLONE_CLIENT_SECRET }}"
+      # ⚠ ここは “引用符で包まない”。Secretsをそのまま流す
+      echo "token = ${{ secrets.RCLONE_TOKEN }}"
+    } > "$RCLONE_CONFIG"
 
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    env:
-      RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install rclone
-        run: curl -fsSL https://rclone.org/install.sh | sudo bash
-
-      - name: Write rclone.conf from secrets
-        shell: bash
-        run: |
-          {
-            echo "[gdrive]"
-            echo "type = drive"
-            echo "client_id = ${{ secrets.RCLONE_CLIENT_ID }}"
-            echo "client_secret = ${{ secrets.RCLONE_CLIENT_SECRET }}"
-            echo "scope = drive"
-            echo "token = ${{ secrets.RCLONE_TOKEN }}"
-            if [ -n "${{ secrets.RCLONE_ROOT_FOLDER_ID }}" ]; then
-              echo "root_folder_id = ${{ secrets.RCLONE_ROOT_FOLDER_ID }}"
-            fi
-          } > "$RCLONE_CONFIG"
-          echo "===== rclone.conf ====="
-          cat "$RCLONE_CONFIG"
-
-      - name: Dry-run list
-        shell: bash
-        run: |
-          rclone --config "$RCLONE_CONFIG" lsd "gdrive:" -v
-
-      - name: Sync docs → Drive
-        shell: bash
-        run: |
-          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" --checksum --delete-excluded --fast-list -v
+- name: dry-run list
+  shell: bash
+  run: rclone --config "$RCLONE_CONFIG" lsd "gdrive:" -v
