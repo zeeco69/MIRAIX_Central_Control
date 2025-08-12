@@ -1,4 +1,5 @@
 name: Sync to Google Drive
+
 on:
   push:
     branches: [ main ]
@@ -9,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,26 +20,15 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # write service account json from secret
+          # Secrets -> JSONファイル化（改行OKのまま）
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          # write rclone.conf without heredoc (avoids YAML parsing issues)
-          { echo "[gdrive]";
-            echo "type = drive";
-            echo "scope = drive";
-            echo "service_account_file = sa.json"; } > "$RCLONE_CONFIG"
-
-      - name: Debug: show rclone config & validate JSON
-        shell: bash
-        run: |
-          echo "===== rclone.conf ====="
-          cat "$RCLONE_CONFIG"
-          python - << 'PY'
-import json, re
-j = json.load(open("sa.json","r",encoding="utf-8"))
-mail = j.get("client_email","(none)")
-print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
-print("JSON OK")
-PY
+          # rclone.conf を echo で生成（ヒアドキュメント不使用）
+          {
+            echo "[gdrive]"
+            echo "type = drive"
+            echo "scope = drive"
+            echo "service_account_file = sa.json"
+          } > "$RCLONE_CONFIG"
 
       - name: rclone sync to Drive folder (by folder id)
         shell: bash
