@@ -1,5 +1,4 @@
 name: Sync to Google Drive
-
 on:
   push:
     branches: [ main ]
@@ -10,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
-
     steps:
       - uses: actions/checkout@v4
 
@@ -20,9 +18,7 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # Secrets -> JSONファイル化（改行OKのまま）
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          # rclone.conf を echo で生成（ヒアドキュメント不使用）
           {
             echo "[gdrive]"
             echo "type = drive"
