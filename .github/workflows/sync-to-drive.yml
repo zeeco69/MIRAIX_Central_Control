@@ -1,4 +1,5 @@
 name: Sync to Google Drive
+
 on:
   push:
     branches: [ main ]
@@ -18,16 +19,20 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
+          # Write service account JSON from Secrets to a file
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          printf "[gdrive]\n" > "$RCLONE_CONFIG"
-          printf "type = drive\n" >> "$RCLONE_CONFIG"
-          printf "scope = drive\n" >> "$RCLONE_CONFIG"
+
+          # Write rclone.conf (no heredoc; plain echo to avoid YAML issues)
+          printf "[gdrive]\n"                  >  "$RCLONE_CONFIG"
+          printf "type = drive\n"              >> "$RCLONE_CONFIG"
+          printf "scope = drive\n"             >> "$RCLONE_CONFIG"
           printf "service_account_file = sa.json\n" >> "$RCLONE_CONFIG"
 
       - name: rclone sync to Drive folder (by folder id)
         shell: bash
         run: |
           set -e
+          rclone --version
           rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
             --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
             --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
