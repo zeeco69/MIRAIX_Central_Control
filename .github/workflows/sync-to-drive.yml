@@ -6,25 +6,31 @@ on:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
-    env:
-      RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
-    steps:
-      - uses: actions/checkout@v4
+      runs-on: ubuntu-latest
+      env:
+        RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Install rclone
-        run: curl -fsSL https://rclone.org/install.sh | sudo bash
+        - name: Install rclone
+          run: curl -fsSL https://rclone.org/install.sh | sudo bash
 
-      - name: Write SA JSON and rclone config
-        shell: bash
-        run: |
-          printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          { echo "[gdrive]"; echo "type = drive"; echo "scope = drive"; echo "service_account_file = sa.json"; } > "$RCLONE_CONFIG"
+        - name: Write SA JSON and rclone config
+          shell: bash
+          run: |
+            # Secrets → JSONファイル（改行そのまま）
+            printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
+            # rclone.conf を echo で生成（ヒアドキュメント不使用）
+            { echo "[gdrive]"
+              echo "type = drive"
+              echo "scope = drive"
+              echo "service_account_file = sa.json"
+            } > "$RCLONE_CONFIG"
 
-      - name: rclone sync to Drive folder (by folder id)
-        shell: bash
-        run: |
-          set -e
-          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
-            --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
-            --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
+        - name: rclone sync to Drive folder (by folder id)
+          shell: bash
+          run: |
+            set -e
+            rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
+              --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
+              --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
