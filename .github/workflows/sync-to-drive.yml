@@ -18,13 +18,26 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
+          # write service account json from secret
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-          {
-            echo "[gdrive]"
-            echo "type = drive"
-            echo "scope = drive"
-            echo "service_account_file = sa.json"
-          } > "$RCLONE_CONFIG"
+          # write rclone.conf without heredoc (avoids YAML parsing issues)
+          { echo "[gdrive]";
+            echo "type = drive";
+            echo "scope = drive";
+            echo "service_account_file = sa.json"; } > "$RCLONE_CONFIG"
+
+      - name: Debug: show rclone config & validate JSON
+        shell: bash
+        run: |
+          echo "===== rclone.conf ====="
+          cat "$RCLONE_CONFIG"
+          python - << 'PY'
+import json, re
+j = json.load(open("sa.json","r",encoding="utf-8"))
+mail = j.get("client_email","(none)")
+print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
+print("JSON OK")
+PY
 
       - name: rclone sync to Drive folder (by folder id)
         shell: bash
