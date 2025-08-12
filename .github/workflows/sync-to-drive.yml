@@ -1,30 +1,51 @@
-{
-  "version": "1.0",
-  "updated_at": "2025-08-12T05:54:15+09:00",
-  "default_mode": "sequential",
-  "weights": { "J": 0.6, "K": 0.3, "Q": 0.1 },
-  "timeouts_ms": { "J": 30000, "K": 30000, "Q": 30000 },
-  "failover_order": {
-    "J": ["K", "Q"],
-    "K": ["J", "Q"],
-    "Q": ["J", "K"]
-  },
-  "block_rules": {
-    "q_risk_levels_block": ["High", "Block"],
-    "required_keys": {
-      "J": ["結論", "根拠", "推奨アクション", "リスク評価"],
-      "K": ["結論", "創造的解釈", "実装計画", "機会評価"],
-      "Q": ["結論", "根拠", "盲点と誤認", "リスク評価"]
-    }
-  },
-  "logging": {
-    "root": "logs/",
-    "pattern": "logs/{YYYY}/{MM}/{DD}/{session_id}.jsonl",
-    "pii_mask": true
-  },
-  "routing_overrides": [
-    { "pattern": "緊急|緊迫|至急", "mode": "hybrid", "weights": { "J": 0.5, "K": 0.2, "Q": 0.3 } },
-    { "pattern": "企画|ブランディング|表現|デザイン", "mode": "parallel", "weights": { "J": 0.4, "K": 0.5, "Q": 0.1 } },
-    { "pattern": "セキュリティ|法務|倫理|リスク", "mode": "sequential", "weights": { "J": 0.45, "K": 0.15, "Q": 0.4 } }
-    ]
-}
+name: Sync to Google Drive
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      RCLONE_CONFIG: ${{ github.workspace }}/rclone.conf
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure docs exists (no-op if exists)
+        run: mkdir -p docs
+
+      - name: Install rclone
+        run: curl -fsSL https://rclone.org/install.sh | sudo bash
+
+      - name: Write SA JSON and rclone config
+        shell: bash
+        run: |
+          # 🔐 Secrets からそのままJSONを書き出し（直書き禁止）
+          printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
+
+          # rclone設定（サービスアカウントはファイル参照）
+          cat > "$RCLONE_CONFIG" <<'RC'
+          [gdrive]
+          type = drive
+          scope = drive
+          service_account_file = sa.json
+          RC
+
+      - name: Debug: validate sa.json (optional)
+        shell: bash
+        run: |
+          python - << 'PY'
+          import json,re
+          j=json.load(open("sa.json","r",encoding="utf-8"))
+          mail=j.get("client_email","(none)")
+          print("client_email:", re.sub(r'(^.).*(@.*$)', r'\1***\2', mail))
+          print("JSON OK")
+          PY
+
+      - name: rclone sync to Drive folder (by folder id)
+        shell: bash
+        run: |
+          rclone --config "$RCLONE_CONFIG" sync "docs" "gdrive:" \
+            --drive-root-folder-id "${{ secrets.FOLDER_ID }}" \
+            --drive-stop-on-upload-limit --checksum --delete-excluded --fast-list -v
