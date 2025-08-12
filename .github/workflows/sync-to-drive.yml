@@ -1,5 +1,4 @@
 name: Sync to Google Drive
-
 on:
   push:
     branches: [ main ]
@@ -19,10 +18,7 @@ jobs:
       - name: Write SA JSON and rclone config
         shell: bash
         run: |
-          # Write service account JSON from secret (multi-line OK)
           printf '%s' '${{ secrets.CREDENTIALS_JSON }}' > sa.json
-
-          # Write rclone.conf without heredoc (avoid YAML syntax issues)
           printf "[gdrive]\n" > "$RCLONE_CONFIG"
           printf "type = drive\n" >> "$RCLONE_CONFIG"
           printf "scope = drive\n" >> "$RCLONE_CONFIG"
